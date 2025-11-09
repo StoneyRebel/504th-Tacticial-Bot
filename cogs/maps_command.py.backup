@@ -1,0 +1,346 @@
+import discord
+from discord.ext import commands
+from discord import app_commands
+from data.data_manager import data_manager
+from config.settings import Settings
+import logging
+from typing import Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
+
+# Mapping for maps where JSON key doesn't match filename
+MAP_NAME_FIXES = {
+    'sme': 'SME',
+    'elalamein': 'ElAlamein',
+    'hurtgen': 'HurtgenV2',
+    'phl': 'PHL',
+    'smdmv2': 'SMDMV2',
+    'elsenborn': 'ElsenbornRidge',
+}
+
+class VariantButton(discord.ui.Button):
+    def __init__(self, label, suffix, map_key, map_info):
+        # Different styles for different variants
+        style_map = {
+            "Grid": discord.ButtonStyle.primary,
+            "NoGrid": discord.ButtonStyle.secondary,
+            "SP_NoHQ": discord.ButtonStyle.success,
+            "defaultgarries": discord.ButtonStyle.danger
+        }
+        style = style_map.get(suffix, discord.ButtonStyle.secondary)
+        
+        super().__init__(label=label, style=style)
+        self.suffix = suffix
+        self.map_key = map_key
+        self.map_info = map_info
+
+    async def callback(self, interaction: discord.Interaction):
+        try:
+            # Fix map name if needed
+            actual_map_name = MAP_NAME_FIXES.get(self.map_key, self.map_key.title())
+            
+            # Generate filename
+            image_filename = f"{actual_map_name}_{self.suffix}.png"
+            
+            logger.info(f"🗺️ Loading map: {self.map_key} → {actual_map_name} → {image_filename}")
+            
+            # Create embed
+            embed = self.create_map_embed(actual_map_name, self.map_info)
+            
+            # Handle asset loading
+            if Settings.USE_EXTERNAL_ASSETS:
+                # Use external URL
+                image_url = Settings.get_asset_url(image_filename)
+                embed.set_image(url=image_url)
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                logger.info(f"✅ Sent map {actual_map_name} with external image")
+                
+            else:
+                # Use local file
+                logger.info(f"🔍 Looking for local asset: {image_filename}")
+                
+                if Settings.DEBUG:
+                    Settings.debug_asset_loading(image_filename)
+                
+                file_obj = Settings.get_asset_file(image_filename)
+                if file_obj:
+                    embed.set_image(url=f"attachment://{image_filename}")
+                    await interaction.response.send_message(embed=embed, file=file_obj, ephemeral=True)
+                    logger.info(f"✅ Sent map {actual_map_name} with local image")
+                else:
+                    # No image found, send embed only with warning
+                    embed.add_field(
+                        name="⚠️ Image Not Available", 
+                        value=f"Map image `{image_filename}` could not be loaded.",
+                        inline=False
+                    )
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    logger.warning(f"⚠️ No image found for {image_filename}, sent text only")
+                    
+        except discord.errors.RequestEntityTooLarge:
+            logger.error(f"❌ Image too large for {image_filename}")
+            embed = self.create_map_embed(actual_map_name, self.map_info)
+            embed.add_field(
+                name="⚠️ Image Too Large", 
+                value="The map image is too large to display. Try the external assets option.",
+                inline=False
+            )
+            try:
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+            except Exception as e:
+                logger.error(f"❌ Failed to send fallback message: {e}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error loading map {self.map_key}: {e}")
+            try:
+                error_embed = discord.Embed(
+                    title=f"❌ Error Loading {actual_map_name}",
+                    description=f"Sorry, there was an error loading the map. Please try again later.",
+                    color=0xff0000
+                )
+                await interaction.response.send_message(embed=error_embed, ephemeral=True)
+            except Exception as e2:
+                logger.error(f"❌ Failed to send error message: {e2}")
+    
+    def create_map_embed(self, map_name: str, map_info: Dict[str, Any]) -> discord.Embed:
+        """Create a formatted embed for map information"""
+        embed = discord.Embed(
+            title=map_info.get("title", f"{map_name} – Tactical Map Briefing"),
+            color=0x5865F2
+        )
+        
+        # Add fields with proper formatting
+        fields = [
+            ("🌍 Terrain", map_info.get("terrain", "No terrain info available")),
+            ("🎯 Key Points", map_info.get("points", "No key points info available")),
+            ("👥 Infantry Strategy", map_info.get("infantry", "No infantry strategy available")),
+            ("🚗 Armor Strategy", map_info.get("armor", "No armor strategy available"))
+        ]
+        
+        for name, value in fields:
+            # Truncate if too long
+            if len(value) > 1024:
+                value = value[:1021] + "..."
+            embed.add_field(name=name, value=value, inline=False)
+        
+        # Add footer with variant info
+        embed.set_footer(text=f"Map Variant: {self.suffix} | Hell Let Loose Tactical Guide")
+        
+        return embed
+
+
+class VariantButtonView(discord.ui.View):
+    def __init__(self, map_key: str, map_info: Dict[str, Any]):
+        super().__init__(timeout=300)
+        
+        # Define variants with their display names
+        variants = {
+            "🗺️ Grid": "Grid",
+            "🌐 No Grid": "NoGrid", 
+            "⚔️ SP No HQ": "SP_NoHQ",
+            "🏠 Default Garries": "defaultgarries"
+        }
+        
+        # Check which variants actually exist for this map
+        available_variants = self.check_available_variants(map_key, variants)
+        
+        if not available_variants:
+            # If no variants found, add all as fallback
+            available_variants = variants
+        
+        for label, suffix in available_variants.items():
+            self.add_item(VariantButton(label, suffix, map_key, map_info))
+    
+    def check_available_variants(self, map_key: str, variants: Dict[str, str]) -> Dict[str, str]:
+        """Check which map variants actually exist in assets"""
+        if Settings.USE_EXTERNAL_ASSETS:
+            # Can't check external assets, return all
+            return variants
+        
+        actual_map_name = MAP_NAME_FIXES.get(map_key, map_key.title())
+        available = {}
+        
+        for label, suffix in variants.items():
+            filename = f"{actual_map_name}_{suffix}.png"
+            if Settings.get_asset_file(filename) is not None:
+                available[label] = suffix
+        
+        return available
+    
+    async def on_timeout(self):
+        """Handle view timeout"""
+        for item in self.children:
+            item.disabled = True
+
+
+class MapDropdown(discord.ui.Select):
+    def __init__(self, maps_data: Dict[str, Any]):
+        if not maps_data:
+            options = [discord.SelectOption(
+                label="No maps available",
+                value="none",
+                description="No map data found"
+            )]
+        else:
+            # Create options with proper character limits
+            options = []
+            for map_key, map_info in maps_data.items():
+                # Get a short description from terrain info (max 94 chars to allow for "...")
+                description = map_info.get('terrain', '')
+                if len(description) > 94:
+                    # Find a good breaking point (space or punctuation) near the limit
+                    truncate_at = 94
+                    for i in range(94, max(60, len(description) - 20), -1):
+                        if description[i] in [' ', '.', ',', ';']:
+                            truncate_at = i
+                            break
+                    description = description[:truncate_at].rstrip() + "..."
+                elif not description:
+                    description = "Tactical map information available"
+                
+                # Final safety check - ensure never over 100 characters
+                description = description[:100]
+                
+                # Clean up map name for display
+                display_name = map_key.title().replace('_', ' ')
+                if display_name.lower() == 'sme':
+                    display_name = 'Sainte-Mère-Église'
+                elif display_name.lower() == 'phl':
+                    display_name = 'Purple Heart Lane'
+                elif display_name.lower() == 'smdmv2':
+                    display_name = 'Saint-Marie-du-Mont V2'
+                elif display_name.lower() == 'elalamein':
+                    display_name = 'El Alamein'
+                
+                options.append(discord.SelectOption(
+                    label=display_name,
+                    value=map_key,
+                    description=description,
+                    emoji="🗺️"
+                ))
+        
+        super().__init__(
+            placeholder="Choose a map...", 
+            min_values=1, 
+            max_values=1, 
+            options=options
+        )
+        self.maps_data = maps_data
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "none":
+            await interaction.response.send_message(
+                "❌ No map data available at this time.",
+                ephemeral=True
+            )
+            return
+            
+        selected = self.values[0]
+        map_info = self.maps_data.get(selected)
+        
+        if not map_info:
+            await interaction.response.send_message(
+                f"❌ Map data for '{selected}' not found.",
+                ephemeral=True
+            )
+            return
+        
+        logger.info(f"🗺️ Map selected: {selected}")
+
+        try:
+            view = VariantButtonView(selected, map_info)
+            
+            # Create a preview embed
+            preview_embed = discord.Embed(
+                title=f"🗺️ {selected.title()}",
+                description="Choose a map variant below to view detailed tactical information.",
+                color=0x5865F2
+            )
+            preview_embed.add_field(
+                name="Available Variants",
+                value="• **Grid** - Map with coordinate grid overlay\n"
+                      "• **No Grid** - Clean map without grid\n" 
+                      "• **SP No HQ** - Special variant without HQ markers\n"
+                      "• **Default Garries** - Map showing default garrison positions",
+                inline=False
+            )
+            
+            await interaction.response.send_message(
+                embed=preview_embed,
+                view=view,
+                ephemeral=True
+            )
+            
+        except Exception as e:
+            logger.error(f"❌ Error creating map selection for {selected}: {e}")
+            await interaction.response.send_message(
+                f"❌ Error loading map options for '{selected}'. Please try again.",
+                ephemeral=True
+            )
+
+
+class MapDropdownView(discord.ui.View):
+    def __init__(self, maps_data: Dict[str, Any]):
+        super().__init__(timeout=300)
+        self.add_item(MapDropdown(maps_data))
+    
+    async def on_timeout(self):
+        """Handle view timeout"""
+        for item in self.children:
+            item.disabled = True
+
+
+class Maps(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @app_commands.command(
+        name="maps", 
+        description="Select a map and view tactical information with different variants"
+    )
+    async def maps(self, interaction: discord.Interaction):
+        logger.info(f"🗺️ Maps command triggered by {interaction.user}")
+        
+        try:
+            maps_data = data_manager.load_data('maps')
+            
+            if not maps_data:
+                await interaction.response.send_message(
+                    "❌ No map data available. Please check the data files.",
+                    ephemeral=True
+                )
+                return
+            
+            logger.info(f"📋 Loaded {len(maps_data)} maps")
+            
+            # Create the initial selection view
+            view = MapDropdownView(maps_data)
+            
+            # Create welcome embed
+            welcome_embed = discord.Embed(
+                title="🧭 Hell Let Loose - Tactical Maps",
+                description=f"Select from {len(maps_data)} available maps to view detailed tactical information.",
+                color=0x5865F2
+            )
+            welcome_embed.add_field(
+                name="📋 Available Maps",
+                value=f"Maps include: {', '.join(list(maps_data.keys())[:5])}{'...' if len(maps_data) > 5 else ''}",
+                inline=False
+            )
+            welcome_embed.set_footer(text="Each map has multiple variants with different overlays and information.")
+            
+            await interaction.response.send_message(
+                embed=welcome_embed,
+                view=view,
+                ephemeral=True
+            )
+            
+        except Exception as e:
+            logger.error(f"❌ Error in maps command: {e}")
+            await interaction.response.send_message(
+                "❌ Sorry, there was an error loading the maps. Please try again later.",
+                ephemeral=True
+            )
+
+async def setup(bot):
+    await bot.add_cog(Maps(bot))

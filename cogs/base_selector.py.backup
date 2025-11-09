@@ -1,0 +1,200 @@
+import discord
+from discord.ext import commands
+from discord import app_commands
+from data.data_manager import data_manager
+from config.settings import Settings
+from typing import Dict, Any, List
+import aiohttp
+import io
+import logging
+import os
+
+logger = logging.getLogger(__name__)
+
+class BaseSelectorDropdown(discord.ui.Select):
+    """Generic dropdown for selecting items from any category"""
+    
+    def __init__(self, category: str, faction: str = None, items: Dict[str, Any] = None):
+        self.category = category
+        self.faction = faction
+        
+        if items is None:
+            items = data_manager.get_items(category, faction)
+        
+        # Create options from items
+        options = []
+        for key, item in items.items():
+            label = item.get('display_name', key.title())
+            description = item.get('short_description', '')[:100]  # Discord limit
+            emoji = item.get('emoji', None)
+            
+            options.append(discord.SelectOption(
+                label=label,
+                value=key,
+                description=description,
+                emoji=emoji
+            ))
+        
+        super().__init__(
+            placeholder=f"Choose a {category.rstrip('s')}...",
+            min_values=1,
+            max_values=1,
+            options=options[:25]  # Discord limit
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        selected_key = self.values[0]
+        item_data = data_manager.get_item(self.category, selected_key, self.faction)
+        
+        embed = self.create_embed(item_data, selected_key)
+        files = await self.get_files(item_data, selected_key)
+        
+        await interaction.response.send_message(
+            embed=embed,
+            files=files,
+            ephemeral=True
+        )
+    
+    def create_embed(self, item_data: Dict[str, Any], key: str) -> discord.Embed:
+        """Create embed from item data"""
+        embed = discord.Embed(
+            title=item_data.get('title', key.title()),
+            color=int(item_data.get('color', '0x5865F2'), 16)
+        )
+        
+        # Add all fields from data
+        for field_key, field_value in item_data.items():
+            if field_key.startswith('field_'):
+                field_name = field_key.replace('field_', '').replace('_', ' ').title()
+                embed.add_field(
+                    name=field_name,
+                    value=field_value,
+                    inline=item_data.get(f"{field_key}_inline", False)
+                )
+        
+        # Set thumbnail if available
+        if 'thumbnail' in item_data:
+            if Settings.USE_EXTERNAL_ASSETS:
+                embed.set_thumbnail(url=Settings.get_asset_url(item_data['thumbnail']))
+            else:
+                embed.set_thumbnail(url=f"attachment://{item_data['thumbnail']}")
+        
+        return embed
+    
+    async def get_files(self, item_data: Dict[str, Any], key: str) -> List[discord.File]:
+        """Get files for the embed"""
+        files = []
+        
+        if Settings.USE_EXTERNAL_ASSETS:
+            # When using external assets, we don't need to attach files
+            return files
+        
+        # Local file handling
+        if 'thumbnail' in item_data:
+            file_obj = Settings.get_asset_file(item_data['thumbnail'])
+            if file_obj:
+                files.append(file_obj)
+        
+        # Additional images for local hosting
+        for image in item_data.get('additional_images', []):
+            file_obj = Settings.get_asset_file(image)
+            if file_obj:
+                files.append(file_obj)
+        
+        return files
+
+
+class FactionSelectorDropdown(discord.ui.Select):
+    """Dropdown for selecting faction when needed"""
+    
+    def __init__(self, category: str, factions: List[str]):
+        self.category = category
+        
+        options = []
+        faction_config = {
+            'us': {'name': 'United States', 'emoji': '🇺🇸'},
+            'german': {'name': 'Germany', 'emoji': '🇩🇪'},
+            'soviet': {'name': 'Soviet Union', 'emoji': '🇷🇺'},
+            'british': {'name': 'United Kingdom', 'emoji': '🇬🇧'}
+        }
+        
+        for faction in factions:
+            config = faction_config.get(faction, {'name': faction.title(), 'emoji': None})
+            options.append(discord.SelectOption(
+                label=config['name'],
+                value=faction,
+                emoji=config['emoji']
+            ))
+        
+        super().__init__(
+            placeholder="Choose a faction...",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        selected_faction = self.values[0]
+        items = data_manager.get_items(self.category, selected_faction)
+        
+        view = BaseSelectorView(self.category, selected_faction, items)
+        await interaction.response.send_message(
+            f"Selected {selected_faction.title()}. Choose an item:",
+            view=view,
+            ephemeral=True
+        )
+
+
+class BaseSelectorView(discord.ui.View):
+    """Generic view for item selection"""
+    
+    def __init__(self, category: str, faction: str = None, items: Dict[str, Any] = None):
+        super().__init__(timeout=300)
+        
+        if items is None:
+            items = data_manager.get_items(category, faction)
+        
+        self.add_item(BaseSelectorDropdown(category, faction, items))
+
+
+class GenericSelector(commands.Cog):
+    """Generic cog that can handle any content type"""
+    
+    def __init__(self, bot, category: str, command_name: str, description: str):
+        self.bot = bot
+        self.category = category
+        self.command_name = command_name
+        self.description = description
+    
+    def create_command(self):
+        """Dynamically create the slash command"""
+        
+        @app_commands.command(name=self.command_name, description=self.description)
+        async def generic_command(interaction: discord.Interaction):
+            factions = data_manager.get_factions(self.category)
+            
+            if len(factions) <= 1:
+                # Single faction or no factions, go directly to items
+                items = data_manager.get_items(self.category)
+                view = BaseSelectorView(self.category, None, items)
+                await interaction.response.send_message(
+                    f"Select a {self.category.rstrip('s')}:",
+                    view=view,
+                    ephemeral=True
+                )
+            else:
+                # Multiple factions, show faction selector first
+                view = discord.ui.View(timeout=300)
+                view.add_item(FactionSelectorDropdown(self.category, factions))
+                await interaction.response.send_message(
+                    f"Select a faction for {self.category}:",
+                    view=view,
+                    ephemeral=True
+                )
+        
+        # Add the command to the bot's tree
+        self.bot.tree.add_command(generic_command)
+
+async def setup(bot):
+    # This cog is imported by content_manager, no direct setup needed
+    pass

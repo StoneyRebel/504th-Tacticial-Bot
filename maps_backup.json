@@ -1,0 +1,146 @@
+{
+  "foy": {
+    "title": "Foy – Tactical Map Briefing",
+    "terrain": "Snowy terrain with sparse forests, open fields, and destructible buildings. Sightlines are long and armor-friendly.",
+    "points": "Key strongpoints include WN7, Foy center, Train Station, and West Bend. Midpoints are mostly exposed.",
+    "infantry": "Use trees and hedgerows for cover. Avoid crossing open fields unless smoked. Control houses in Foy and Train Station.",
+    "armor": "Use long sightlines to lock down roads and choke points. Coordinate with infantry to push the center.",
+    "thumbnail": "attachment://Foy.png"
+  },
+  "omaha": {
+    "title": "Omaha Beach – Tactical Map Briefing",
+    "terrain": "Steep beach ascent with trenches, bunkers, and narrow chokepoints. Lots of verticality.",
+    "points": "Strongpoints include Dog Green, WN73, and The Ruins. The beach is vulnerable to spawn camping.",
+    "infantry": "Smoke the beachhead. Use bunkers and trench lines to flank. Push past chokepoints quickly.",
+    "armor": "Stay off the beach unless supported. Use tanks to suppress bunkers and overwatch cliffs.",
+    "thumbnail": "attachment://Omaha.png"
+  },
+  "utah": {
+    "title": "Utah Beach – Tactical Map Briefing",
+    "terrain": "Wide open beach zones with dense hedgerow inland. Few hard structures.",
+    "points": "Look for control of The Bluffs, WN5, and The Orchard. Inland movement becomes more infantry-focused.",
+    "infantry": "Clear trench lines and push inland fast. Build garrisons in barns and behind hedgerows.",
+    "armor": "Support landings from distance. Inland, tanks must stay on roads or risk traps in fields.",
+    "thumbnail": "attachment://Utah.png"
+  },
+  "stalingrad": {
+    "title": "Stalingrad – Tactical Map Briefing",
+    "terrain": "Urban rubble with tight alleys, bombed-out buildings, and collapsed infrastructure.",
+    "points": "Factory District, Railroad Depot, and Red October are the bloodiest choke points.",
+    "infantry": "Stay off rooftops. Clear buildings room by room. Use smoke to cross major streets.",
+    "armor": "Risky to deploy armor in city center. Protect tanks with infantry cover or avoid the middle.",
+    "thumbnail": "attachment://Stalingrad.png"
+  },
+  "kursk": {
+    "title": "Kursk – Tactical Map Briefing",
+    "terrain": "Flat and open. Rolling hills with minimal cover. Sniper and armor paradise.",
+    "points": "Windmill, Tank Traps, and North Farm are all long-range fights. Garrisons are hard to hide.",
+    "infantry": "Stick to trenches and terrain dips. Move in teams and avoid open ground.",
+    "armor": "Kursk is armor-heavy. Control the ridge lines and snipe enemy tanks before they move.",
+    "thumbnail": "attachment://Kursk.png"
+  },
+  "carentan": {
+    "title": "Carentan – Tactical Map Briefing",
+    "terrain": "Mixed city and farmland. Tight roads, canals, and plenty of fences.",
+    "points": "Main intersections: Cemetery, Train Station, and Church Square. Close quarters fights.",
+    "infantry": "Use canals and back alleys to flank. Smoke is key to crossing open streets.",
+    "armor": "Hold long streets and intersections. Tanks can dominate, but risk satchels in tight areas.",
+    "thumbnail": "attachment://Carentan.png"
+  },
+  "sme": {
+    "title": "Sainte-Mère-Église – Tactical Map Briefing",
+    "terrain": "Classic bocage country. Dense hedgerows and tight fields dominate the map.",
+    "points": "Strongpoints include Church, Cemetery, and Flak Gun positions.",
+    "infantry": "Hedgerows are your best cover. Watch for ambushes at every corner.",
+    "armor": "Stick to roads. Fields are dangerous and can trap you in.",
+    "thumbnail": "attachment://SME.png"
+  },
+  "hill400": {
+    "title": "Hill 400 – Tactical Map Briefing",
+    "terrain": "Forested hilltop combat. Fog, elevation, and tree cover everywhere.",
+    "points": "Hilltop, Forest Cut, and Logging Camp are brutal midpoints.",
+    "infantry": "Move tree-to-tree. Avoid the hilltop crest unless smoked.",
+    "armor": "Stay low and use wooded trails. You’ll be exposed at elevation.",
+    "thumbnail": "attachment://Hill400.png"
+  },
+  "remagen": {
+    "title": "Remagen – Tactical Map Briefing",
+    "terrain": "Bridge combat. Urban on one side, open on the other. The river splits the map.",
+    "points": "Bridge Center, Train Yard, and Riverside Outpost are critical zones.",
+    "infantry": "Cross the bridge carefully. Use catwalks, ladders, and lower crossings.",
+    "armor": "Hold one end of the bridge. Crossing exposes you — wait for smoke cover.",
+    "thumbnail": "attachment://Remagen.png"
+  },
+  "elalamein": {
+    "title": "El Alamein – Tactical Map Briefing",
+    "terrain": "Open desert. Massive dunes, scattered structures, minimal cover.",
+    "points": "Key zones include Fortress Ruins, Outpost, and Supply Depot.",
+    "infantry": "Stay behind dunes. Dig in with nodes and supplies.",
+    "armor": "Wide open tank combat. Control the high dunes and flank across dry valleys.",
+    "thumbnail": "attachment://ElAlamein.png"
+  },
+  "kharkov": {
+    "title": "Kharkov – Tactical Map Briefing",
+    "terrain": "Winter wasteland with forests, hills, and frozen rivers.",
+    "points": "Key zones: Village Center, Sawmill, and Crossing Point.",
+    "infantry": "Stay in the woods. Use white camo. Watch for tanks crossing rivers.",
+    "armor": "Use tree lines for cover fire. Rotate after each push or risk flanks.",
+    "thumbnail": "attachment://Kharkov.png"
+  },
+  "hurtgen": {
+    "title": "Hürtgen Forest – Tactical Map Briefing",
+    "terrain": "Tight forest combat. Low visibility, minimal roads, constant ambushes.",
+    "points": "Bunker Hill, Logging Site, and West Woods dominate the fight.",
+    "infantry": "Ambush and traps rule here. Stay close to your squad.",
+    "armor": "Limited armor value. Avoid deep woods and rotate out fast.",
+    "thumbnail": "attachment://Hurtgen.png"
+  },
+  "phl": {
+    "title": "Purple Heart Lane – Tactical Map Briefing",
+    "terrain": "Flooded farmlands with trenches, canals, and bridges.",
+    "points": "Bridge Crossing, Estate, and Canal Bunker are key.",
+    "infantry": "Use trenches and fences. Smoke the canal crossing.",
+    "armor": "Use main roads. Avoid deep water crossings.",
+    "thumbnail": "attachment://PHL.png"
+  },
+  "smdmv2": {
+    "title": "Saint-Marie-du-Mont V2 – Tactical Map Briefing",
+    "terrain": "Bocage, barns, and wide open farms. Classic rural HLL feel.",
+    "points": "Chapel, Grain Elevator, and Windmill.",
+    "infantry": "Clear structures before advancing. Watch for tanks hiding in treelines.",
+    "armor": "Use roads and fence lines. Push with infantry to cap points.",
+    "thumbnail": "attachment://SMDMV2.png"
+  },
+  "driel": {
+    "title": "Driel – Tactical Map Briefing",
+    "terrain": "Floodplain farmland with river crossings and bridges.",
+    "points": "Crossroads, Canal Farm, and Wheat Mill.",
+    "infantry": "Push over dikes carefully. Use bridges and smoke to advance.",
+    "armor": "Anchor from paved roads. Avoid low spots with no exit.",
+    "thumbnail": "attachment://Driel.png"
+  },
+  "elsenborn": {
+    "title": "Elsenborn Ridge – Tactical Map Briefing",
+    "terrain": "Winter ridge map with frozen fields, trenches, and roads.",
+    "points": "Radar Station, Ridge Bunker, and Ammo Dump.",
+    "infantry": "Stay in trenches. Push ridge lines carefully. Smoke is critical.",
+    "armor": "Control the ridge crest with Panthers or Shermans.",
+    "thumbnail": "attachment://ElsenbornRidge.png"
+  },
+  "mortain": {
+    "title": "Mortain – Tactical Map Briefing",
+    "terrain": "Valleys, elevation, and rural French villages.",
+    "points": "Church Hill, Grain Silo, and South Fields.",
+    "infantry": "Hold hills with machine guns. Build behind hedgerows.",
+    "armor": "Use elevation advantage. Tanks can lock down the fields.",
+    "thumbnail": "attachment://Mortain.png"
+  },
+  "tobruk": {
+    "title": "Tobruk – Tactical Map Briefing",
+    "terrain": "Open desert with fortifications and tunnels.",
+    "points": "Fort Line, Oasis, and Anti-Tank Ditch.",
+    "infantry": "Use trenches. Avoid cresting dunes without cover.",
+    "armor": "Desert warfare. Tanks rule if positioned properly.",
+    "thumbnail": "attachment://Tobruk.png"
+  }
+}

@@ -1,0 +1,96 @@
+import os
+from dotenv import load_dotenv
+import logging
+
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+class Settings:
+    """Configuration settings for the bot"""
+    
+    # Bot configuration
+    DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
+    ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+    DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
+    
+    # Asset hosting configuration
+    USE_EXTERNAL_ASSETS = os.getenv('USE_EXTERNAL_ASSETS', 'false').lower() == 'true'
+    
+    # Assets directory path
+    ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets')
+    
+    @classmethod
+    def get_asset_url(cls, filename: str) -> str:
+        """Get asset URL - for local files, this returns attachment format"""
+        return f'attachment://{filename}'
+    
+    @classmethod
+    def get_asset_file(cls, filename: str):
+        """Get Discord file object for local assets"""
+        if cls.USE_EXTERNAL_ASSETS:
+            # If using external assets, return None (embed will use URL instead)
+            return None
+        
+        # Look for file directly in assets folder
+        asset_path = os.path.join(cls.ASSETS_DIR, filename)
+        
+        if os.path.exists(asset_path):
+            import discord
+            return discord.File(asset_path, filename=filename)
+        
+        # If file not found, log it for debugging
+        if cls.DEBUG:
+            print(f"⚠️  Asset not found: {asset_path}")
+        
+        return None
+    
+    @classmethod
+    def list_available_assets(cls):
+        """List all available asset files (for debugging)"""
+        if not os.path.exists(cls.ASSETS_DIR):
+            return []
+        
+        assets = []
+        for file in os.listdir(cls.ASSETS_DIR):
+            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                assets.append(file)
+        
+        return sorted(assets)
+    
+    @classmethod
+    def verify_setup(cls):
+        """Verify the bot configuration is correct"""
+        issues = []
+        
+        # Check token
+        if not cls.DISCORD_TOKEN:
+            issues.append("❌ DISCORD_TOKEN not set in .env file")
+        
+        # Check assets directory
+        if not os.path.exists(cls.ASSETS_DIR):
+            issues.append(f"❌ Assets directory not found: {cls.ASSETS_DIR}")
+        else:
+            asset_count = len(cls.list_available_assets())
+            if asset_count == 0:
+                issues.append(f"⚠️  No image files found in {cls.ASSETS_DIR}")
+            else:
+                print(f"✅ Found {asset_count} asset files")
+        
+        # Check data files
+        data_dir = os.path.join(os.path.dirname(cls.ASSETS_DIR), 'data')
+        required_files = ['tanks.json', 'maps.json']
+        
+        for file in required_files:
+            file_path = os.path.join(data_dir, file)
+            if not os.path.exists(file_path):
+                issues.append(f"❌ Required data file missing: {file_path}")
+        
+        if issues:
+            print("\n🚨 CONFIGURATION ISSUES:")
+            for issue in issues:
+                print(f"   {issue}")
+            return False
+        else:
+            print("✅ Bot configuration looks good!")
+            return True
